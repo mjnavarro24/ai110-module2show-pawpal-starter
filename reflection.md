@@ -2,6 +2,9 @@
 
 ## 1. System Design
 
+
+3 core actions: add tasks, see today's plan, input time constraints.  
+
 **a. Initial design**
 
 - Briefly describe your initial UML design.
