@@ -10,10 +10,16 @@
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
 
+The classes I chose were Pet, Owner, Task, Plan, and ToDoList. An Owner can add/edit their availability. A TodoList can generate a plan and add, edit, or remove a Task. 
+
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
+
+Yes I changed it so that a Task holds a Pet attribute for the case when we have multiple Pets. 
+
+I also changed it so that Owner holds both the todo list and the schedule. I made this change because the todolist and schedule would be associated with an owner, and in order to generate a schedule, the method will also need access to the todolist and the owner's availability. It makes more sense to have all the data stored in one place. Because of this change I also moved the generateSchedule method to the Owner. 
 
 ---
 
