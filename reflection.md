@@ -35,6 +35,11 @@ I also changed it so that Owner holds both the todo list and the schedule. I mad
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
 
+Tradeoff: I optimized find_conflicts by sorting tasks by start time and breaking out of the inner loop as soon as a later task begins after the current one ends — since nothing after it can overlap either. It's faster than comparing every pair, but harder to read: the early break depends on a non-obvious invariant a reader has to reason through. For a small pet-care list the plain double loop would've been fast enough, so the speed isn't strictly necessary — but the code documents its own logic and shows the optimization intentionally.
+
+
+Why it's reasonable: A pet owner's daily task list is small — a handful of items, not thousands — so the performance win is negligible in practice. But the same sort-and-short-circuit pattern is what makes conflict detection scale if PawPal ever tracks many pets or a full week of recurring tasks. Since the extra logic is contained in one well-commented function and doesn't leak complexity elsewhere, paying a small readability cost now for a design that won't need rewriting later is a sensible trade.
+
 ---
 
 ## 3. AI Collaboration
