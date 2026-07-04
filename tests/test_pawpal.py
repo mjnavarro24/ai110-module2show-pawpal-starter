@@ -75,6 +75,70 @@ def test_three_way_pileup_reports_each_pair():
     assert conflicts == [(a, b), (a, c), (b, c)]
 
 
+def test_sort_by_time_orders_todays_tasks():
+    """sort_by_time returns the day's tasks in time-of-day order."""
+    late = make_task("Late", start=time(17, 0))
+    early = make_task("Early", start=time(6, 0))
+    noon = make_task("Noon", start=time(12, 0))
+
+    ordered = Scheduler().sort_by_time([late, early, noon], on_day=date(2026, 7, 1))
+
+    assert ordered == [early, noon, late]
+
+
+def test_sort_by_time_excludes_other_days():
+    """Only tasks scheduled for on_day are included."""
+    today_task = make_task("Today", start=time(9, 0))
+    other_day = Task(
+        name="Other",
+        description="",
+        priority=Priority.MEDIUM,
+        duration_minutes=30,
+        date=date(2026, 7, 2),
+        time=time(8, 0),
+    )
+
+    ordered = Scheduler().sort_by_time([today_task, other_day], on_day=date(2026, 7, 1))
+
+    assert ordered == [today_task]
+
+
+def test_filter_tasks_by_completion_status():
+    """filter_tasks keeps only tasks matching the completed flag."""
+    pet = Pet(name="Rex", age=3)
+    done = make_task("Done")
+    done.mark_completed()
+    todo = make_task("Todo")
+    pet.add_task(done)
+    pet.add_task(todo)
+    owner = Owner(name="Sam", pets=[pet])
+
+    assert Scheduler().filter_tasks(owner, completed=True) == [done]
+    assert Scheduler().filter_tasks(owner, completed=False) == [todo]
+
+
+def test_filter_tasks_by_pet_name():
+    """filter_tasks keeps only tasks belonging to the named pet."""
+    rex = Pet(name="Rex", age=3)
+    rex_task = make_task("Walk Rex")
+    rex.add_task(rex_task)
+    milo = Pet(name="Milo", age=2)
+    milo.add_task(make_task("Walk Milo"))
+    owner = Owner(name="Sam", pets=[rex, milo])
+
+    assert Scheduler().filter_tasks(owner, pet_name="Rex") == [rex_task]
+
+
+def test_filter_tasks_with_no_filters_returns_all():
+    """Passing no filters returns every task across all pets."""
+    pet = Pet(name="Rex", age=3)
+    pet.add_task(make_task("A"))
+    pet.add_task(make_task("B"))
+    owner = Owner(name="Sam", pets=[pet])
+
+    assert len(Scheduler().filter_tasks(owner)) == 2
+
+
 def test_generate_schedule_carries_conflicts():
     """The generated Plan surfaces conflicts and notes them in the explanation."""
     pet = Pet(name="Rex", age=3)

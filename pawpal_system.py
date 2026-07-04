@@ -156,6 +156,36 @@ class Scheduler:
 
         return conflicts
 
+    def sort_by_time(self, tasks: List[Task], on_day: date = None) -> List[Task]:
+        """Return a day's tasks ordered by their time-of-day attribute.
+
+        Only tasks scheduled for `on_day` (defaults to today) are included,
+        so ordering by the time-of-day attribute alone gives a correct
+        chronological order.
+        """
+        if on_day is None:
+            on_day = date.today()
+        days_tasks = [task for task in tasks if task.date == on_day]
+        return sorted(days_tasks, key=lambda task: task.time)
+
+    def filter_tasks(
+        self, owner: Owner, completed: bool = None, pet_name: str = None
+    ) -> List[Task]:
+        """Return the owner's tasks filtered by completion status and/or pet name.
+
+        Both filters are optional. Passing neither returns every task; passing
+        both keeps only tasks matching both conditions.
+        """
+        tasks = []
+        for pet in owner.pets:
+            if pet_name is not None and pet.name != pet_name:
+                continue
+            for task in pet.tasks:
+                if completed is not None and task.is_completed != completed:
+                    continue
+                tasks.append(task)
+        return tasks
+
     def generate_schedule(self, owner: Owner) -> Plan:
         """Build a Plan from the owner's pending tasks.
 
