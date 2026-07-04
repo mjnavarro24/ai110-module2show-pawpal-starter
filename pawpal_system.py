@@ -6,7 +6,7 @@ Generated from diagrams/uml_draft.mmd, then fleshed out with core logic.
 from dataclasses import dataclass, field
 from datetime import date, time, datetime, timedelta
 from enum import IntEnum
-from typing import List
+from typing import List, Tuple
 
 
 class Priority(IntEnum):
@@ -65,6 +65,20 @@ class Task:
         return datetime.combine(self.date, self.time)
     
     @property
+    def ends_at(self) -> datetime:
+        # When this task finishes.
+        return self.scheduled_for + timedelta(minutes=self.duration_minutes)
+
+    def overlaps(self, other: "Task") -> bool:
+        # True if this task's time interval intersects another's.
+        # Half-open intervals: back-to-back tasks (one ends exactly when
+        # the next starts) do NOT count as a conflict. A zero-duration task
+        # is an empty interval, so it never overlaps anything.
+        if self.duration_minutes == 0 or other.duration_minutes == 0:
+            return False
+        return self.scheduled_for < other.ends_at and other.scheduled_for < self.ends_at
+
+    @property
     def is_completed(self) -> bool:
         # True if this task's status is 'completed'.
         return self.status == "completed"
@@ -101,6 +115,8 @@ class Pet:
 class Plan:
     tasks: List[Task] = field(default_factory=list)
     explanation: str = ""
+    # Pairs of tasks whose scheduled times overlap.
+    conflicts: List[Tuple[Task, Task]] = field(default_factory=list)
 
 
 @dataclass
@@ -121,6 +137,25 @@ class Owner:
 
 @dataclass
 class Scheduler:
+    def find_conflicts(self, tasks: List[Task]) -> List[Tuple[Task, Task]]:
+        """Return every pair of tasks whose scheduled times overlap.
+
+        Sorts by start time, then compares each task only against those it
+        could still overlap — once a later task starts at/after this one
+        ends, nothing further can overlap it either, so we stop scanning.
+        """
+        ordered = sorted(tasks, key=lambda t: t.scheduled_for)
+        conflicts: List[Tuple[Task, Task]] = []
+
+        for i, task in enumerate(ordered):
+            for later in ordered[i + 1:]:
+                if later.scheduled_for >= task.ends_at:
+                    break
+                if task.overlaps(later):
+                    conflicts.append((task, later))
+
+        return conflicts
+
     def generate_schedule(self, owner: Owner) -> Plan:
         """Build a Plan from the owner's pending tasks.
 
@@ -133,12 +168,16 @@ class Scheduler:
             key=lambda task: (-int(task.priority), task.scheduled_for),
         )
 
+        conflicts = self.find_conflicts(scheduled)
+
         total_minutes = sum(task.duration_minutes for task in scheduled)
         explanation = (
             f"Scheduled {len(scheduled)} task(s) for {owner.name}, "
             f"totaling {total_minutes} minutes, ordered by priority then time."
         )
+        if conflicts:
+            explanation += f" ⚠️ {len(conflicts)} time conflict(s) detected."
 
-        plan = Plan(tasks=scheduled, explanation=explanation)
+        plan = Plan(tasks=scheduled, explanation=explanation, conflicts=conflicts)
         owner.schedule = plan
         return plan
