@@ -3,10 +3,10 @@
 Generated from diagrams/uml_draft.mmd, then fleshed out with core logic.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, time, datetime, timedelta
-from enum import IntEnum
-from typing import List, Tuple
+from enum import Enum, IntEnum
+from typing import List, Optional, Tuple
 
 
 class Priority(IntEnum):
@@ -15,6 +15,14 @@ class Priority(IntEnum):
     LOW = 1
     MEDIUM = 2
     HIGH = 3
+
+
+class Recurrence(Enum):
+    """How often a task repeats. NONE means a one-off task."""
+
+    NONE = "none"
+    DAILY = "daily"
+    WEEKLY = "weekly"
 
 
 # class Weekday(IntEnum):
@@ -58,6 +66,16 @@ class Task:
     date: date
     time: time
     status: str = "pending"  # e.g., "pending", "completed"
+    recurrence: Recurrence = Recurrence.NONE
+
+    def next_occurrence(self) -> "Task":
+        # A fresh pending copy of this task on its next recurrence date.
+        # Every other field (priority, duration, recurrence, ...) carries over.
+        step = {
+            Recurrence.DAILY: timedelta(days=1),
+            Recurrence.WEEKLY: timedelta(weeks=1),
+        }[self.recurrence]
+        return replace(self, date=self.date + step, status="pending")
 
     @property
     def scheduled_for(self) -> datetime:
@@ -167,6 +185,24 @@ class Scheduler:
             on_day = date.today()
         days_tasks = [task for task in tasks if task.date == on_day]
         return sorted(days_tasks, key=lambda task: task.time)
+
+    def complete_task(self, task: Task, pet: Pet) -> Optional[Task]:
+        """Mark a task complete; if it recurs, create and attach the next one.
+
+        Returns the newly created task, or None for a one-off task (or a task
+        that was already completed). Completing an already-done task is a no-op,
+        so recurring tasks never spawn duplicate next occurrences.
+        """
+        if task.is_completed:
+            return None
+        task.mark_completed()
+
+        if task.recurrence is Recurrence.NONE:
+            return None
+
+        upcoming = task.next_occurrence()
+        pet.add_task(upcoming)
+        return upcoming
 
     def filter_tasks(
         self, owner: Owner, completed: bool = None, pet_name: str = None

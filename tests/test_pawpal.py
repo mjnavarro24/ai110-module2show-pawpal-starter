@@ -2,7 +2,7 @@
 
 from datetime import date, time
 
-from pawpal_system import Owner, Pet, Priority, Scheduler, Task
+from pawpal_system import Owner, Pet, Priority, Recurrence, Scheduler, Task
 
 
 def make_task(name="Walk", start=time(9, 0), duration_minutes=30):
@@ -137,6 +137,62 @@ def test_filter_tasks_with_no_filters_returns_all():
     owner = Owner(name="Sam", pets=[pet])
 
     assert len(Scheduler().filter_tasks(owner)) == 2
+
+
+def test_complete_task_one_off_spawns_nothing():
+    """Completing a non-recurring task creates no new task."""
+    pet = Pet(name="Rex", age=3)
+    task = make_task("Walk")
+    pet.add_task(task)
+
+    result = Scheduler().complete_task(task, pet)
+
+    assert result is None
+    assert task.is_completed
+    assert len(pet.tasks) == 1
+
+
+def test_complete_daily_task_spawns_next_day():
+    """Completing a daily task adds a pending copy one day later."""
+    pet = Pet(name="Rex", age=3)
+    task = make_task("Feed", start=time(8, 0))
+    task.recurrence = Recurrence.DAILY
+    pet.add_task(task)
+
+    upcoming = Scheduler().complete_task(task, pet)
+
+    assert upcoming is not None
+    assert upcoming.date == date(2026, 7, 2)
+    assert upcoming.time == time(8, 0)
+    assert upcoming.recurrence == Recurrence.DAILY
+    assert not upcoming.is_completed
+    assert pet.tasks == [task, upcoming]
+
+
+def test_complete_weekly_task_spawns_next_week():
+    """Completing a weekly task adds a pending copy seven days later."""
+    pet = Pet(name="Rex", age=3)
+    task = make_task("Grooming", start=time(10, 0))
+    task.recurrence = Recurrence.WEEKLY
+    pet.add_task(task)
+
+    upcoming = Scheduler().complete_task(task, pet)
+
+    assert upcoming.date == date(2026, 7, 8)
+
+
+def test_complete_task_is_idempotent():
+    """Completing an already-done task does not spawn a duplicate."""
+    pet = Pet(name="Rex", age=3)
+    task = make_task("Feed")
+    task.recurrence = Recurrence.DAILY
+    pet.add_task(task)
+
+    Scheduler().complete_task(task, pet)
+    second = Scheduler().complete_task(task, pet)
+
+    assert second is None
+    assert len(pet.tasks) == 2  # original + one spawned copy, no more
 
 
 def test_generate_schedule_carries_conflicts():

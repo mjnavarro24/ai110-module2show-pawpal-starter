@@ -10,6 +10,7 @@ from pawpal_system import (
     Owner,
     Pet,
     Priority,
+    Recurrence,
     Scheduler,
     Task,
 )
@@ -64,17 +65,19 @@ def build_owner() -> Owner:
         )
     )
 
-    # An already-completed task, to show the completion filter at work.
-    breakfast = Task(
-        name="Breakfast",
-        description="Morning meal for Whiskers.",
-        priority=Priority.MEDIUM,
-        duration_minutes=10,
-        date=today,
-        time=time(7, 0),
+    # A daily task, still pending. Completing it (in main) auto-spawns
+    # tomorrow's Breakfast, which also shows up in the completion filter.
+    whiskers.add_task(
+        Task(
+            name="Breakfast",
+            description="Morning meal for Whiskers.",
+            priority=Priority.MEDIUM,
+            duration_minutes=10,
+            date=today,
+            time=time(7, 0),
+            recurrence=Recurrence.DAILY,
+        )
     )
-    breakfast.mark_completed()
-    whiskers.add_task(breakfast)
 
     return Owner(name="Alex", pets=[rex, whiskers])
 
@@ -129,10 +132,27 @@ def print_filtered_views(owner: Owner, scheduler: Scheduler) -> None:
     show("Rex's tasks", scheduler.filter_tasks(owner, pet_name="Rex"))
 
 
+def complete_daily_breakfast(owner: Owner, scheduler: Scheduler) -> None:
+    """Complete Whiskers' daily Breakfast and show the auto-spawned next one."""
+    whiskers = next(pet for pet in owner.pets if pet.name == "Whiskers")
+    breakfast = next(task for task in whiskers.tasks if task.name == "Breakfast")
+
+    upcoming = scheduler.complete_task(breakfast, whiskers)
+
+    print("\nCompleting Whiskers' daily Breakfast...")
+    print("-" * 40)
+    if upcoming is not None:
+        print(
+            f"Auto-created next occurrence for {upcoming.date:%A, %B %d}: "
+            f"{format_task(upcoming, whiskers.name)}"
+        )
+
+
 def main() -> None:
     owner = build_owner()
     scheduler = Scheduler()
     print_todays_schedule(owner, scheduler)
+    complete_daily_breakfast(owner, scheduler)
     print_filtered_views(owner, scheduler)
 
 
