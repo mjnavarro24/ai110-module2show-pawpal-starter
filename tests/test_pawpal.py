@@ -47,6 +47,14 @@ def test_overlapping_tasks_are_flagged():
     assert conflicts == [(walk, feed)]
 
 
+def test_identical_start_times_conflict():
+    """Two tasks starting at the exact same time are flagged as a conflict."""
+    walk = make_task("Walk", start=time(9, 0), duration_minutes=30)
+    feed = make_task("Feed", start=time(9, 0), duration_minutes=30)
+
+    assert Scheduler().find_conflicts([walk, feed]) == [(walk, feed)]
+
+
 def test_back_to_back_tasks_do_not_conflict():
     """One task ending exactly when the next starts is not a conflict."""
     walk = make_task("Walk", start=time(9, 0), duration_minutes=30)
@@ -73,6 +81,23 @@ def test_three_way_pileup_reports_each_pair():
 
     # Reported in sorted-by-start order; Task isn't hashable, so compare as a list.
     assert conflicts == [(a, b), (a, c), (b, c)]
+
+
+def test_break_early_exit_still_catches_later_overlap():
+    """A non-overlapping middle task must not hide a later true overlap.
+
+    find_conflicts breaks its inner scan once a later task starts at/after the
+    current one ends. A long task must still be compared against a task that
+    starts after a shorter, non-overlapping one earlier in the sorted order.
+    """
+    long = make_task("Long", start=time(9, 0), duration_minutes=120)   # 9:00-11:00
+    gap = make_task("Gap", start=time(11, 0), duration_minutes=15)     # 11:00-11:15, no overlap
+    late = make_task("Late", start=time(10, 30), duration_minutes=30)  # 10:30-11:00, overlaps long
+
+    conflicts = Scheduler().find_conflicts([long, gap, late])
+
+    # Only long/late overlap; gap butts up against long but does not conflict.
+    assert conflicts == [(long, late)]
 
 
 def test_sort_by_time_orders_todays_tasks():

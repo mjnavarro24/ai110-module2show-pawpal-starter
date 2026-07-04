@@ -75,8 +75,31 @@ pytest --cov
 Sample test output:
 
 ```
-# Paste your pytest output here
-```
+python3 -m pytest
+======================================= test session starts ========================================
+platform darwin -- Python 3.13.0, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/melaynanavarro/codepath/ai110-module2show-pawpal-starter
+plugins: anyio-4.14.0
+collected 18 items                                                                                 
+
+tests/test_pawpal.py ..................                                                      [100%]
+
+=============== 18 passed in 0.01s ==================```
+
+python -m pytest tests/test_pawpal.py
+
+### What the tests cover
+
+The suite in `tests/test_pawpal.py` exercises the core scheduling behaviors:
+
+- **Task & pet basics** — marking a task complete flips its status, and adding a task increases the pet's task count.
+- **Conflict detection** — overlapping tasks are flagged, tasks with identical start times conflict, and three mutually overlapping tasks report all pairs. Back-to-back tasks (one ending as the next starts) and zero-duration tasks are correctly treated as *non*-conflicts. A dedicated test confirms the early-exit optimization in `find_conflicts` still catches a later overlap hidden behind a non-overlapping gap.
+- **Sorting** — `sort_by_time` returns a day's tasks in chronological order and excludes tasks from other days.
+- **Filtering** — `filter_tasks` narrows by completion status, by pet name, and returns everything when no filters are given.
+- **Recurring tasks** — completing a one-off task spawns nothing; a daily task spawns a pending copy one day later and a weekly task seven days later. Completion is idempotent, so re-completing never creates duplicate occurrences.
+- **Schedule generation** — `generate_schedule` surfaces conflicts and notes them in the plan's explanation.
+
+Confidence Level: 5
 
 ## 📐 Smarter Scheduling
 
