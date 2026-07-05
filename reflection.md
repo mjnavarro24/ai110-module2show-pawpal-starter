@@ -30,6 +30,8 @@ I also changed it so that Owner holds both the todo list and the schedule. I mad
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
 - How did you decide which constraints mattered most?
 
+My scheduler considers priority and time. I decided these mattered the most to creating a functioning/usable schedule and that preferences is a nice to have feature but not an MVP feataure for this case. 
+
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
@@ -49,10 +51,15 @@ Why it's reasonable: A pet owner's daily task list is small — a handful of ite
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
 - What kinds of prompts or questions were most helpful?
 
+I used AI tools for most of the project steps, asking for feedback on my initial design as well as for implementing, debugging, and refactoring. 
+The prompt "Ask your AI coding assistant to review your skeleton: attach pawpal_system.py and ask if it notices any missing relationships or potential logic bottlenecks." did reveal some gaps and was a great/necessary question for creating the foundation. 
+
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
 - How did you evaluate or verify what the AI suggested?
+
+I would constantly verify/evaluate what the AI suggested by asking follow up questions to what it's designed. If it didn't understand something I asked it multiple times step by step, questioning it in the case it might recognize it was wrong. 
 
 ---
 
@@ -63,11 +70,14 @@ Why it's reasonable: A pet owner's daily task list is small — a handful of ite
 - What behaviors did you test?
 - Why were these tests important?
 
+I created tests for each of the methods I created to ensure everything was covered. Having tests is important because it is diffuclt to test everything manually. When a change was made I could run the tests to make sure everything still runs correctly. 
+
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
 - What edge cases would you test next if you had more time?
 
+I am 90% confident in the current functionality because of the robustness of my tests on my logic. The scheduler c
 ---
 
 ## 5. Reflection
@@ -76,10 +86,16 @@ Why it's reasonable: A pet owner's daily task list is small — a handful of ite
 
 - What part of this project are you most satisfied with?
 
+I am satisfied with how quickly the functionality was put together and how usable the pet scheduler is. 
+
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
 
+I would like to improve both the UI and some functionality. If there is a conflict, I want to provide the user a way to edit the task times to what time works best. This way their schedule no longer keeps the conflict and they can still move the task to another spot on their schedule. 
+
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+That it takes a lot of time and thought into designing a system. It also seems like the more simple you start the better. I started with a lot of complexity at first which made it a bit difficult to organize at the start. 

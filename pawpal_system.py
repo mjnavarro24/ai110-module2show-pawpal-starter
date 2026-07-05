@@ -128,6 +128,24 @@ class Pet:
         if task in self.tasks:
             self.tasks.remove(task)
 
+    def complete_task(self, task: Task) -> Optional[Task]:
+        """Mark one of this pet's tasks complete; if it recurs, spawn the next.
+
+        Returns the newly created task, or None for a one-off task (or a task
+        that was already completed). Completing an already-done task is a no-op,
+        so recurring tasks never spawn duplicate next occurrences.
+        """
+        if task.is_completed:
+            return None
+        task.mark_completed()
+
+        if task.recurrence is Recurrence.NONE:
+            return None
+
+        upcoming = task.next_occurrence()
+        self.add_task(upcoming)
+        return upcoming
+
 
 @dataclass
 class Plan:
@@ -148,9 +166,27 @@ class Owner:
         # Every task across all of this owner's pets.
         return [task for pet in self.pets for task in pet.tasks]
 
+    def filter_tasks(
+        self, completed: bool = None, pet_name: str = None
+    ) -> List[Task]:
+        """Return this owner's tasks filtered by completion status and/or pet name.
+
+        Both filters are optional. Passing neither returns every task; passing
+        both keeps only tasks matching both conditions.
+        """
+        tasks = []
+        for pet in self.pets:
+            if pet_name is not None and pet.name != pet_name:
+                continue
+            for task in pet.tasks:
+                if completed is not None and task.is_completed != completed:
+                    continue
+                tasks.append(task)
+        return tasks
+
     # Every not-yet-completed task across all of this owner's pets.
     def pending_tasks(self) -> List[Task]:
-        return [task for task in self.all_tasks() if not task.is_completed]
+        return self.filter_tasks(completed=False)
 
 
 @dataclass
@@ -185,42 +221,6 @@ class Scheduler:
             on_day = date.today()
         days_tasks = [task for task in tasks if task.date == on_day]
         return sorted(days_tasks, key=lambda task: task.time)
-
-    def complete_task(self, task: Task, pet: Pet) -> Optional[Task]:
-        """Mark a task complete; if it recurs, create and attach the next one.
-
-        Returns the newly created task, or None for a one-off task (or a task
-        that was already completed). Completing an already-done task is a no-op,
-        so recurring tasks never spawn duplicate next occurrences.
-        """
-        if task.is_completed:
-            return None
-        task.mark_completed()
-
-        if task.recurrence is Recurrence.NONE:
-            return None
-
-        upcoming = task.next_occurrence()
-        pet.add_task(upcoming)
-        return upcoming
-
-    def filter_tasks(
-        self, owner: Owner, completed: bool = None, pet_name: str = None
-    ) -> List[Task]:
-        """Return the owner's tasks filtered by completion status and/or pet name.
-
-        Both filters are optional. Passing neither returns every task; passing
-        both keeps only tasks matching both conditions.
-        """
-        tasks = []
-        for pet in owner.pets:
-            if pet_name is not None and pet.name != pet_name:
-                continue
-            for task in pet.tasks:
-                if completed is not None and task.is_completed != completed:
-                    continue
-                tasks.append(task)
-        return tasks
 
     def generate_schedule(self, owner: Owner) -> Plan:
         """Build a Plan from the owner's pending tasks.

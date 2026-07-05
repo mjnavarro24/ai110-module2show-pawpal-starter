@@ -138,8 +138,8 @@ def test_filter_tasks_by_completion_status():
     pet.add_task(todo)
     owner = Owner(name="Sam", pets=[pet])
 
-    assert Scheduler().filter_tasks(owner, completed=True) == [done]
-    assert Scheduler().filter_tasks(owner, completed=False) == [todo]
+    assert owner.filter_tasks(completed=True) == [done]
+    assert owner.filter_tasks(completed=False) == [todo]
 
 
 def test_filter_tasks_by_pet_name():
@@ -151,7 +151,7 @@ def test_filter_tasks_by_pet_name():
     milo.add_task(make_task("Walk Milo"))
     owner = Owner(name="Sam", pets=[rex, milo])
 
-    assert Scheduler().filter_tasks(owner, pet_name="Rex") == [rex_task]
+    assert owner.filter_tasks(pet_name="Rex") == [rex_task]
 
 
 def test_filter_tasks_with_no_filters_returns_all():
@@ -161,7 +161,7 @@ def test_filter_tasks_with_no_filters_returns_all():
     pet.add_task(make_task("B"))
     owner = Owner(name="Sam", pets=[pet])
 
-    assert len(Scheduler().filter_tasks(owner)) == 2
+    assert len(owner.filter_tasks()) == 2
 
 
 def test_complete_task_one_off_spawns_nothing():
@@ -170,7 +170,7 @@ def test_complete_task_one_off_spawns_nothing():
     task = make_task("Walk")
     pet.add_task(task)
 
-    result = Scheduler().complete_task(task, pet)
+    result = pet.complete_task(task)
 
     assert result is None
     assert task.is_completed
@@ -184,7 +184,7 @@ def test_complete_daily_task_spawns_next_day():
     task.recurrence = Recurrence.DAILY
     pet.add_task(task)
 
-    upcoming = Scheduler().complete_task(task, pet)
+    upcoming = pet.complete_task(task)
 
     assert upcoming is not None
     assert upcoming.date == date(2026, 7, 2)
@@ -201,7 +201,7 @@ def test_complete_weekly_task_spawns_next_week():
     task.recurrence = Recurrence.WEEKLY
     pet.add_task(task)
 
-    upcoming = Scheduler().complete_task(task, pet)
+    upcoming = pet.complete_task(task)
 
     assert upcoming.date == date(2026, 7, 8)
 
@@ -213,8 +213,8 @@ def test_complete_task_is_idempotent():
     task.recurrence = Recurrence.DAILY
     pet.add_task(task)
 
-    Scheduler().complete_task(task, pet)
-    second = Scheduler().complete_task(task, pet)
+    pet.complete_task(task)
+    second = pet.complete_task(task)
 
     assert second is None
     assert len(pet.tasks) == 2  # original + one spawned copy, no more
@@ -231,3 +231,63 @@ def test_generate_schedule_carries_conflicts():
 
     assert len(plan.conflicts) == 1
     assert "conflict" in plan.explanation.lower()
+
+
+def test_all_tasks_spans_multiple_pets():
+    """all_tasks aggregates tasks across every pet the owner has."""
+    rex = Pet(name="Rex", age=3)
+    rex.add_task(make_task("Walk Rex"))
+    milo = Pet(name="Milo", age=2)
+    milo.add_task(make_task("Walk Milo"))
+    milo.add_task(make_task("Feed Milo"))
+    owner = Owner(name="Sam", pets=[rex, milo])
+
+    assert len(owner.all_tasks()) == 3
+
+
+def test_pending_tasks_spans_multiple_pets():
+    """pending_tasks excludes completed tasks across all pets."""
+    rex = Pet(name="Rex", age=3)
+    rex_done = make_task("Walk Rex")
+    rex.add_task(rex_done)
+    milo = Pet(name="Milo", age=2)
+    milo_task = make_task("Walk Milo")
+    milo.add_task(milo_task)
+    owner = Owner(name="Sam", pets=[rex, milo])
+
+    rex.complete_task(rex_done)
+
+    assert owner.pending_tasks() == [milo_task]
+
+
+def test_find_conflicts_across_pets():
+    """A conflict is detected between two different pets' overlapping tasks."""
+    rex = Pet(name="Rex", age=3)
+    rex_vet = make_task("Vet visit", start=time(15, 0), duration_minutes=60)
+    rex.add_task(rex_vet)
+    milo = Pet(name="Milo", age=2)
+    milo_feed = make_task("Feed Milo", start=time(15, 30), duration_minutes=15)
+    milo.add_task(milo_feed)
+    owner = Owner(name="Sam", pets=[rex, milo])
+
+    conflicts = Scheduler().find_conflicts(owner.all_tasks())
+
+    assert conflicts == [(rex_vet, milo_feed)]
+
+
+def test_generate_schedule_orders_across_pets_by_priority():
+    """generate_schedule orders tasks from different pets by priority, then time."""
+    rex = Pet(name="Rex", age=3)
+    rex_low = make_task("Low Rex", start=time(8, 0))
+    rex_low.priority = Priority.LOW
+    rex.add_task(rex_low)
+    milo = Pet(name="Milo", age=2)
+    milo_high = make_task("High Milo", start=time(17, 0))
+    milo_high.priority = Priority.HIGH
+    milo.add_task(milo_high)
+    owner = Owner(name="Sam", pets=[rex, milo])
+
+    plan = Scheduler().generate_schedule(owner)
+
+    # Higher priority wins even though its time is later in the day.
+    assert [task.name for task in plan.tasks] == ["High Milo", "Low Rex"]

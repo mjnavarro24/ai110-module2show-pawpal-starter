@@ -127,9 +127,9 @@ def print_filtered_views(owner: Owner, scheduler: Scheduler) -> None:
         for task in tasks:
             print(format_task(task, task_to_pet.get(id(task), "?")))
 
-    show("Pending tasks", scheduler.filter_tasks(owner, completed=False))
-    show("Completed tasks", scheduler.filter_tasks(owner, completed=True))
-    show("Rex's tasks", scheduler.filter_tasks(owner, pet_name="Rex"))
+    show("Pending tasks", owner.filter_tasks(completed=False))
+    show("Completed tasks", owner.filter_tasks(completed=True))
+    show("Rex's tasks", owner.filter_tasks(pet_name="Rex"))
 
 
 def complete_daily_breakfast(owner: Owner, scheduler: Scheduler) -> None:
@@ -137,7 +137,7 @@ def complete_daily_breakfast(owner: Owner, scheduler: Scheduler) -> None:
     whiskers = next(pet for pet in owner.pets if pet.name == "Whiskers")
     breakfast = next(task for task in whiskers.tasks if task.name == "Breakfast")
 
-    upcoming = scheduler.complete_task(breakfast, whiskers)
+    upcoming = whiskers.complete_task(breakfast)
 
     print("\nCompleting Whiskers' daily Breakfast...")
     print("-" * 40)
