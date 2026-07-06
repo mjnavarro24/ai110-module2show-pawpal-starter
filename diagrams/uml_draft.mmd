@@ -1,0 +1,38 @@
+classDiagram
+    class Owner {
+        +String name
+        +Availability availability
+        +editAvailability(Availability availability) void
+    }
+
+    class Pet {
+        +String name
+        +int age
+    }
+
+    class ToDoList {
+        +List~Task~ tasks
+        +addTask(Task task) void
+        +removeTask(Task task) void
+        +editTask(Task task) void
+        +generateSchedule() Plan
+    }
+
+    class Task {
+        +String name
+        +Priority priority
+        +Duration duration
+        +Date date
+        +Time time
+    }
+
+    class Plan {
+        +List~Task~ tasks
+        +String explanation
+    }
+
+    Owner "1" --> "*" Pet : owns
+    Owner "1" --> "1" ToDoList : maintains
+    ToDoList "1" o-- "*" Task : contains
+    ToDoList ..> Plan : generates
+    Plan "1" o-- "*" Task : schedules

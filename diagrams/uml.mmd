@@ -1,15 +1,71 @@
 classDiagram
-    %% Replace the placeholders below with your actual classes, attributes, methods, and relationships.
-    %% Keep this file updated so it matches your final implementation.
-
-    class ClassName {
-        +type attribute
-        +method() returnType
+    class Priority {
+        <<enumeration>>
+        LOW
+        MEDIUM
+        HIGH
     }
 
-    class AnotherClass {
-        +type attribute
-        +method() returnType
+    class Recurrence {
+        <<enumeration>>
+        NONE
+        DAILY
+        WEEKLY
     }
 
-    ClassName --> AnotherClass : relationship
+    class Task {
+        +String name
+        +String description
+        +Priority priority
+        +int duration_minutes
+        +Date date
+        +Time time
+        +String status
+        +Recurrence recurrence
+        +next_occurrence() Task
+        +scheduled_for() datetime
+        +ends_at() datetime
+        +overlaps(Task other) bool
+        +is_completed() bool
+        +mark_completed() void
+        +mark_pending() void
+    }
+
+    class Pet {
+        +String name
+        +int age
+        +List~Task~ tasks
+        +add_task(Task task) void
+        +remove_task(Task task) void
+        +complete_task(Task task) Task
+    }
+
+    class Plan {
+        +List~Task~ tasks
+        +String explanation
+        +List~Tuple~ conflicts
+    }
+
+    class Owner {
+        +String name
+        +List~Pet~ pets
+        +Plan schedule
+        +all_tasks() List~Task~
+        +filter_tasks(bool completed, String pet_name) List~Task~
+        +pending_tasks() List~Task~
+    }
+
+    class Scheduler {
+        +find_conflicts(List~Task~ tasks) List~Tuple~
+        +sort_by_time(List~Task~ tasks, Date on_day) List~Task~
+        +generate_schedule(Owner owner) Plan
+    }
+
+    Owner "1" --> "*" Pet : owns
+    Owner "1" --> "1" Plan : schedule
+    Pet "1" o-- "*" Task : has
+    Plan "1" o-- "*" Task : schedules
+    Scheduler ..> Owner : reads
+    Scheduler ..> Plan : generates
+    Task ..> Priority : uses
+    Task ..> Recurrence : uses
